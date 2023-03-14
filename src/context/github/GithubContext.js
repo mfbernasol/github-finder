@@ -5,17 +5,18 @@ const GithubContext = createContext();
 
 const GITHUB_URL = process.env.REACT_APP_GITHUB_URL;
 const GITHUB_TOKEN = process.env.REACT_TOKEN_GITHUB_TOKEN;
-const headers = { 'Authorization': {GITHUB_TOKEN}};
+const headers = { Authorization: { GITHUB_TOKEN } };
 
 export const GithubProvider = ({ children }) => {
   const intialState = {
     users: [],
     user: {},
+    repos: [],
     loading: false,
   };
   const [state, dispatch] = useReducer(githubReducer, intialState);
 
-  // Get
+  // Get user
   const searchUsers = async (text) => {
     setLoading();
 
@@ -31,30 +32,48 @@ export const GithubProvider = ({ children }) => {
       type: 'GET_USERS',
       payload: items,
     });
-
-    console.log(items);
   };
 
   // Get single user
   const getUser = async (login) => {
     setLoading();
 
-
-    const response = await fetch(`${GITHUB_URL}/users/${login}`, {headers}
-    );
+    const response = await fetch(`${GITHUB_URL}/users/${login}`, { headers });
 
     if (response.status === 400) {
       window.location = '/notfound';
     } else {
-      const data  = await response.json();
+      const data = await response.json();
 
       dispatch({
         type: 'GET_USER',
         payload: data,
       });
     }
+  };
 
+  // Get user repos
+  const getUserRepos = async (login) => {
+    setLoading();
 
+    const params = new URLSearchParams({
+      sort: 'created',
+      per_page: 10,
+    });
+
+    const response = await fetch(
+      `${GITHUB_URL}/users/${login}/repos?${params}`,
+      { headers }
+    );
+
+    const data = await response.json();
+
+    dispatch({
+      type: 'GET_REPOS',
+      payload: data,
+    });
+
+    console.log(data)
   };
 
   // clear users from state
@@ -72,9 +91,11 @@ export const GithubProvider = ({ children }) => {
         users: state.users,
         loading: state.loading,
         user: state.user,
+        repos: state.repos,
         searchUsers,
         clearUsers,
         getUser,
+        getUserRepos,
       }}
     >
       {children}
